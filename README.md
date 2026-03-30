@@ -1,35 +1,48 @@
 # antigravity-login-fix
 
-一个面向 Windows 的第三方修复脚本仓库，用来给 `Antigravity 1.2x` 注入最小 `BigInt` 登录兼容补丁。  
-仓库只包含 **检测、备份、注入、回滚** 脚本，不包含任何官方源文件或二进制。
+这是一个给 **Google Antigravity** 用的 Windows 小工具。
 
-## 适用范围
+它解决的是这样一种情况：
 
-- 系统：Windows
-- 脚本：PowerShell 优先，同时附带 `.cmd` 包装入口
-- 支持版本：`Antigravity 1.2x`
-- 默认目标：`Antigravity.exe` 安装目录下的 `resources\app\out\main.js`
+- 同一台电脑上
+- 有的 Google 账号能正常登录 Antigravity
+- 有的 Google 账号明明授权成功了，却还是登不上去
+- 或者反复登录很多次才能进去
 
-> 说明：脚本采用“版本检测 + 文件特征匹配 + 不匹配即退出”的保守策略。  
-> 即使版本号满足 `1.2x`，只要目标 `main.js` 结构不符合预期，也不会写入。
+这个仓库的作用，就是给本机的 Antigravity 打一个 **最小登录修复补丁**，让这类账号登录问题更容易恢复正常。
 
-## 仓库内容
+> 这不是官方项目。  
+> 这是第三方修复脚本，只改你自己电脑上的 Antigravity 安装文件，不会上传你的账号信息。
 
-- `install.ps1` / `install.cmd`
-  - 检测本机安装
-  - 检测版本与文件特征
-  - 创建备份
-  - 注入 `BigInt.prototype.toJSON` 登录兜底
-- `check.ps1` / `check.cmd`
-  - 只读检查当前状态
-- `restore.ps1` / `restore.cmd`
-  - 从备份恢复 `main.js`
-- `lib/AntigravityLoginFix.Common.ps1`
-  - 共用检测与文件写入逻辑
-- `tests/Test-AntigravityLoginFix.ps1`
-  - 本地夹具测试脚本
+## 这个仓库适合谁
 
-## 快速使用
+适合下面这种情况：
+
+- 你在 Windows 上用 Antigravity
+- 你遇到过“有的谷歌账号能登，有的不能登”
+- 你想要一个 **下载后双击就能用** 的修复工具
+
+## 能做什么
+
+- 检查你电脑上的 Antigravity 当前状态
+- 自动给登录问题打补丁
+- 自动备份原文件
+- 需要时一键恢复原文件
+
+## 一键双击使用（推荐）
+
+如果别人是从 GitHub 下载 ZIP 到桌面，解压后直接双击下面任意一个文件即可：
+
+- `OneClickInstall.cmd`
+  - 直接安装登录修复
+- `OneClickCheck.cmd`
+  - 检查当前状态
+- `OneClickRestore.cmd`
+  - 把修改恢复回去
+
+这些入口会自动调用 PowerShell 脚本，并保留窗口，方便看结果。
+
+## 命令行用法
 
 ### 1. 检查当前状态
 
@@ -37,46 +50,85 @@
 powershell -ExecutionPolicy Bypass -File .\check.ps1
 ```
 
-或直接双击：
-
-```text
-check.cmd
-```
-
-### 2. 安装登录补丁
+### 2. 安装登录修复
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-或直接双击：
-
-```text
-install.cmd
-```
-
-### 3. 回滚到备份版本
+### 3. 恢复原文件
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\restore.ps1
 ```
 
-或直接双击：
+## 目前支持
+
+- 系统：Windows
+- Antigravity 版本：`1.2x`
+
+脚本会先检查版本和目标文件结构。  
+如果不是支持的版本，或者目标文件和预期不一致，就会直接退出，不会乱改。
+
+## 备份与安全
+
+- 修改前会先备份原文件
+- 如果发现备份异常，会直接停止
+- 如果已经打过同类补丁，不会重复乱写
+- 如果需要，可以随时回滚
+
+默认备份文件名：
 
 ```text
-restore.cmd
+main.js.antigravity-login-fix.backup.js
 ```
+
+## 常见情况
+
+### 1. 明明授权成功了，还是登不上去
+
+这正是这个仓库主要想解决的问题。
+
+### 2. 同一台电脑，不同账号表现不一样
+
+这也是常见现象。  
+有些账号能直接登录，有些账号会卡住、循环、或者要试很多次。
+
+### 3. 会不会影响我的账号安全
+
+不会上传你的账号信息。  
+这个仓库只是在你自己电脑上修改本地 Antigravity 的一个文件，并且会先备份。
+
+### 4. 会不会把软件改坏
+
+脚本是保守策略：
+
+- 先检查
+- 再备份
+- 再写入
+- 最后复检
+
+而且你可以随时恢复。
+
+## 常见失败原因
+
+- `未找到 Antigravity 安装目录`
+  - 可以手动指定路径
+- `当前版本不在支持范围内`
+  - 当前脚本只支持 `1.2x`
+- `目标文件结构与预期不符`
+  - 说明这个版本或安装状态和当前脚本不匹配
+- `备份文件已存在且内容不一致`
+  - 说明当前目录里已有旧备份，建议先检查
 
 ## 可选参数
 
-所有 PowerShell 脚本都支持以下参数：
-
 - `-TargetPath`
-  - 手动指定 `Antigravity` 安装目录，或直接指定 `Antigravity.exe`
+  - 手动指定 Antigravity 安装目录，或直接指定 `Antigravity.exe`
 - `-BackupDir`
   - 自定义备份目录
 - `-Force`
-  - 跳过交互确认（仅 `install.ps1` / `restore.ps1`）
+  - 跳过确认（仅安装/恢复脚本）
 
 示例：
 
@@ -84,50 +136,34 @@ restore.cmd
 powershell -ExecutionPolicy Bypass -File .\install.ps1 -TargetPath "C:\Users\YourName\AppData\Local\Programs\Antigravity" -Force
 ```
 
-## 备份与回滚
-
-- 默认备份文件名固定为：
-
-```text
-main.js.antigravity-login-fix.backup.js
-```
-
-- 如果未指定 `-BackupDir`，备份会写在目标 `main.js` 同目录
-- 如果脚本检测到备份已存在且内容与当前文件不一致，会直接退出，避免覆盖未知备份
-
-## 风险说明
-
-- 这是第三方修复脚本，不代表官方项目
-- 脚本会修改你本机安装目录中的 `main.js`
-- 仓库不会分发任何官方源文件或二进制
-- 脚本只做最小登录修复，不包含导出补丁、UI 补丁、自动更新屏蔽等额外修改
-- 如果未来官方彻底修复了登录链路，这个仓库可能就不再需要
-
-## 常见失败原因
-
-- `未找到 Antigravity 安装目录`
-  - 请用 `-TargetPath` 手动指定
-- `当前版本不在支持范围内`
-  - 当前脚本只支持 `1.2x`
-- `main.js 文件结构与预期不符`
-  - 目标文件不是预期版本或已经被其他工具重写
-- `备份文件已存在且内容不一致`
-  - 说明当前目录里已有旧备份，建议先检查后再决定是否继续
-
 ## 本地验证
 
-仓库附带一个夹具测试脚本，会复制本机 `Antigravity.exe` 到临时目录，并对临时 `main.js` 完成：
+仓库附带一个测试脚本，会在临时目录里复制一份假安装环境，然后验证：
 
 - 检查
 - 安装
-- 重复安装幂等测试
-- 回滚恢复
+- 重复安装不乱写
+- 恢复
+- 异常情况直接失败
 
 运行方式：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tests\Test-AntigravityLoginFix.ps1
 ```
+
+## 打包发布 ZIP
+
+仓库内置发布打包脚本：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\build-release.ps1
+```
+
+执行后会生成：
+
+- `dist/antigravity-login-fix-v<version>.zip`
+- `dist/antigravity-login-fix-v<version>.zip.sha256`
 
 ## 许可
 
