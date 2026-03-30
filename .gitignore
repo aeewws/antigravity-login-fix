@@ -1,0 +1,8 @@
+.vscode/
+tests/_tmp/
+*.log
+*.tmp
+*.bak
+*.backup.js
+Thumbs.db
+Desktop.ini
