@@ -62,6 +62,17 @@ try {
         throw 'Restored main.js does not match the original fixture content.'
     }
 
+    & "$repoRoot\install.ps1" -TargetPath $fixtureRoot -BackupDir $fixtureBackupDir -Force
+    if ($LASTEXITCODE -ne 0) {
+        throw 'install.ps1 failed before corrupted-backup restore test.'
+    }
+
+    Write-Utf8NoBomText -Path (Join-Path $fixtureBackupDir 'main.js.antigravity-login-fix.backup.js') -Content 'console.log("corrupted backup");'
+    & powershell -NoProfile -ExecutionPolicy Bypass -File "$repoRoot\restore.ps1" -TargetPath $fixtureRoot -BackupDir $fixtureBackupDir -Force
+    if ($LASTEXITCODE -eq 0) {
+        throw 'restore.ps1 unexpectedly succeeded with a corrupted backup.'
+    }
+
     & powershell -NoProfile -ExecutionPolicy Bypass -File "$repoRoot\check.ps1" -TargetPath (Join-Path $tempRoot 'MissingInstall')
     if ($LASTEXITCODE -eq 0) {
         throw 'check.ps1 unexpectedly succeeded for a missing target path.'
@@ -76,7 +87,7 @@ try {
         throw 'install.ps1 unexpectedly succeeded for an invalid main.js shape.'
     }
 
-    Write-Host 'Test passed: check, install, idempotence, and restore all succeeded.'
+    Write-Host 'Test passed: check, install, idempotence, restore, and corrupted-backup rejection all succeeded.'
 }
 finally {
     if (Test-Path -LiteralPath $tempRoot) {

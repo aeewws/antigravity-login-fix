@@ -138,7 +138,7 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1 -TargetPath "C:\Users\You
 
 ## 本地验证
 
-仓库附带一个测试脚本，会在临时目录里复制一份假安装环境，然后验证：
+仓库附带一个测试脚本，会在临时目录里复制一份基于你本机现有 Antigravity 安装生成的测试环境，然后验证：
 
 - 检查
 - 安装
@@ -151,6 +151,11 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1 -TargetPath "C:\Users\You
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tests\Test-AntigravityLoginFix.ps1
 ```
+
+前提说明：
+
+- 测试脚本需要你本机已经安装 Antigravity
+- 默认会从 `%LOCALAPPDATA%\Programs\Antigravity` 复制 `Antigravity.exe` 和对应的 `main.js`
 
 ## 打包发布 ZIP
 

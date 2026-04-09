@@ -175,6 +175,18 @@ function Get-PatchStatus {
     return 'Unpatched'
 }
 
+function Test-RestoreBackupContent {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Content
+    )
+
+    return (
+        (Test-MainJsShape -Content $Content) -and
+        (Get-PatchStatus -Content $Content) -eq 'Unpatched'
+    )
+}
+
 function Remove-KnownShimFromContent {
     param(
         [string]$Content
