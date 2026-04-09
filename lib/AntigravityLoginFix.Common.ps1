@@ -90,7 +90,16 @@ function Get-BackupPath {
     )
 
     if ($BackupDir) {
-        return (Join-Path $BackupDir 'main.js.antigravity-login-fix.backup.js')
+        $pathIdentity = $MainJsPath.ToLowerInvariant()
+        $sha256 = [System.Security.Cryptography.SHA256]::Create()
+        try {
+            $hashBytes = $sha256.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($pathIdentity))
+        }
+        finally {
+            $sha256.Dispose()
+        }
+        $hash = ([System.BitConverter]::ToString($hashBytes) -replace '-', '').Substring(0, 12).ToLowerInvariant()
+        return (Join-Path $BackupDir ("main.js.antigravity-login-fix.{0}.backup.js" -f $hash))
     }
 
     return (Join-Path (Split-Path -Path $MainJsPath -Parent) 'main.js.antigravity-login-fix.backup.js')

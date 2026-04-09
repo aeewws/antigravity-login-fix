@@ -83,6 +83,8 @@ powershell -ExecutionPolicy Bypass -File .\restore.ps1
 main.js.antigravity-login-fix.backup.js
 ```
 
+如果你使用 `-BackupDir`，脚本会按目标安装路径生成带标识的备份文件名，避免多个安装实例共用同一个备份文件。
+
 ## 常见情况
 
 ### 1. 明明授权成功了，还是登不上去
