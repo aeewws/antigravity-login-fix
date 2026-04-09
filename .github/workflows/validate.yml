@@ -1,0 +1,39 @@
+name: Validate
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate PowerShell syntax
+        shell: pwsh
+        run: |
+          $scripts = @(
+            '.\build-release.ps1',
+            '.\check.ps1',
+            '.\install.ps1',
+            '.\restore.ps1',
+            '.\lib\AntigravityLoginFix.Common.ps1',
+            '.\tests\Test-AntigravityLoginFix.ps1',
+            '.\tests\Test-ReleasePackage.ps1'
+          )
+          foreach ($script in $scripts) {
+            $null = [scriptblock]::Create((Get-Content $script -Raw))
+          }
+
+      - name: Build release package
+        shell: pwsh
+        run: |
+          .\build-release.ps1
+          if (-not (Test-Path .\dist\*.zip)) {
+            throw 'Release ZIP was not created.'
+          }
