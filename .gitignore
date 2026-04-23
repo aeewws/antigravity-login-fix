@@ -7,3 +7,10 @@ tests/_tmp/
 *.backup.js
 Thumbs.db
 Desktop.ini
+
+# OS / local files
+.DS_Store
+.env
+.env.*
+tmp/
+temp/
