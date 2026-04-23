@@ -16,6 +16,8 @@ $tempRoot = Join-Path $env:TEMP ("antigravity-login-fix-test-" + [Guid]::NewGuid
 $fixtureRoot = Join-Path $tempRoot 'Antigravity'
 $fixtureMainJs = Join-Path $fixtureRoot 'resources\app\out\main.js'
 $fixtureBackupDir = Join-Path $tempRoot 'backup'
+$fixtureAltRoot = Join-Path $tempRoot 'AntigravityAlt'
+$fixtureAltMainJs = Join-Path $fixtureAltRoot 'resources\app\out\main.js'
 $invalidShapeRoot = Join-Path $tempRoot 'AntigravityBadShape'
 $invalidShapeMainJs = Join-Path $invalidShapeRoot 'resources\app\out\main.js'
 
@@ -24,13 +26,15 @@ try {
         throw 'Test-SupportedVersion incorrectly accepted 2.0.0.'
     }
 
-    New-Item -ItemType Directory -Force -Path (Split-Path -Path $fixtureMainJs -Parent), $fixtureBackupDir | Out-Null
+    New-Item -ItemType Directory -Force -Path (Split-Path -Path $fixtureMainJs -Parent), (Split-Path -Path $fixtureAltMainJs -Parent), $fixtureBackupDir | Out-Null
     Copy-Item -LiteralPath (Join-Path $SourceInstallRoot 'Antigravity.exe') -Destination (Join-Path $fixtureRoot 'Antigravity.exe')
+    Copy-Item -LiteralPath (Join-Path $SourceInstallRoot 'Antigravity.exe') -Destination (Join-Path $fixtureAltRoot 'Antigravity.exe')
 
     $liveMainJsPath = Join-Path $SourceInstallRoot 'resources\app\out\main.js'
     $liveContent = Read-Utf8Text -Path $liveMainJsPath
     $fixtureOriginal = Remove-KnownShimFromContent -Content $liveContent
     Write-Utf8NoBomText -Path $fixtureMainJs -Content $fixtureOriginal
+    Write-Utf8NoBomText -Path $fixtureAltMainJs -Content $fixtureOriginal
 
     & "$repoRoot\check.ps1" -TargetPath $fixtureRoot -BackupDir $fixtureBackupDir
     if ($LASTEXITCODE -ne 0) {
@@ -62,6 +66,31 @@ try {
         throw 'Restored main.js does not match the original fixture content.'
     }
 
+    $fixtureBackupPath = Get-BackupPath -MainJsPath $fixtureMainJs -BackupDir $fixtureBackupDir
+    $fixtureAltBackupPath = Get-BackupPath -MainJsPath $fixtureAltMainJs -BackupDir $fixtureBackupDir
+    if ($fixtureBackupPath -eq $fixtureAltBackupPath) {
+        throw 'Custom backup paths should be namespaced per install target.'
+    }
+
+    & "$repoRoot\install.ps1" -TargetPath $fixtureAltRoot -BackupDir $fixtureBackupDir -Force
+    if ($LASTEXITCODE -ne 0) {
+        throw 'install.ps1 failed for the second fixture using the same BackupDir.'
+    }
+    if (-not (Test-Path -LiteralPath $fixtureBackupPath) -or -not (Test-Path -LiteralPath $fixtureAltBackupPath)) {
+        throw 'Expected both namespaced backup files to exist.'
+    }
+
+    & "$repoRoot\install.ps1" -TargetPath $fixtureRoot -BackupDir $fixtureBackupDir -Force
+    if ($LASTEXITCODE -ne 0) {
+        throw 'install.ps1 failed before corrupted-backup restore test.'
+    }
+
+    Write-Utf8NoBomText -Path $fixtureBackupPath -Content 'console.log("corrupted backup");'
+    & powershell -NoProfile -ExecutionPolicy Bypass -File "$repoRoot\restore.ps1" -TargetPath $fixtureRoot -BackupDir $fixtureBackupDir -Force
+    if ($LASTEXITCODE -eq 0) {
+        throw 'restore.ps1 unexpectedly succeeded with a corrupted backup.'
+    }
+
     & powershell -NoProfile -ExecutionPolicy Bypass -File "$repoRoot\check.ps1" -TargetPath (Join-Path $tempRoot 'MissingInstall')
     if ($LASTEXITCODE -eq 0) {
         throw 'check.ps1 unexpectedly succeeded for a missing target path.'
@@ -76,7 +105,7 @@ try {
         throw 'install.ps1 unexpectedly succeeded for an invalid main.js shape.'
     }
 
-    Write-Host 'Test passed: check, install, idempotence, and restore all succeeded.'
+    Write-Host 'Test passed: check, install, idempotence, restore, and corrupted-backup rejection all succeeded.'
 }
 finally {
     if (Test-Path -LiteralPath $tempRoot) {

@@ -48,6 +48,36 @@ Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'lib') -Destination (Join-Path $
 
 Compress-Archive -Path (Join-Path $stageDir '*') -DestinationPath $zipPath -CompressionLevel Optimal
 
+$expectedEntries = @(
+    'README.md',
+    'LICENSE',
+    'VERSION',
+    'install.ps1',
+    'check.ps1',
+    'restore.ps1',
+    'install.cmd',
+    'check.cmd',
+    'restore.cmd',
+    'OneClickInstall.cmd',
+    'OneClickCheck.cmd',
+    'OneClickRestore.cmd',
+    'lib/AntigravityLoginFix.Common.ps1'
+)
+
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$archive = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
+try {
+    $entryNames = @($archive.Entries | ForEach-Object { $_.FullName.Replace('\', '/') })
+    foreach ($expected in $expectedEntries) {
+        if ($expected -notin $entryNames) {
+            throw "Release package is missing expected entry: $expected"
+        }
+    }
+}
+finally {
+    $archive.Dispose()
+}
+
 $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $zipPath).Hash.ToLowerInvariant()
 $hashLine = "$hash  $([System.IO.Path]::GetFileName($zipPath))"
 [System.IO.File]::WriteAllText($hashPath, $hashLine + [Environment]::NewLine, [System.Text.UTF8Encoding]::new($false))
